@@ -2,7 +2,7 @@ import type { NextPage } from 'next';
 import Head from 'next/head';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useState, FormEvent, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface Message {
   id: string;
