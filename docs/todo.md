@@ -1,11 +1,11 @@
 # todo.md - Development Tasks
 
 ## 1. Project Setup
-- [ ] Initialize Next.js 14 project with TypeScript: `npx create-next-app@latest hire-ai --typescript --tailwind --eslint`
-- [ ] Install dependencies: Supabase client, shadcn/ui, Exa API client
-- [ ] Set up Supabase project and get database URL + API keys
-- [ ] Configure environment variables (.env.local)
-- [ ] Initialize shadcn/ui: `npx shadcn-ui@latest init`
+- [x] Initialize Next.js 14 project with TypeScript: `npx create-next-app@latest hire-ai --typescript --tailwind --eslint`
+- [x] Install dependencies: Supabase client, shadcn/ui, Exa API client
+- [x] Set up Supabase project and get database URL + API keys
+- [x] Configure environment variables (.env.local)
+- [x] Initialize shadcn/ui: `npx shadcn-ui@latest init`
 
 ## 2. Database Setup
 - [ ] Create Supabase tables: `candidates`, `searches`, `saved_candidates`
