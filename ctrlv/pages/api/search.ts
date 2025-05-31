@@ -48,10 +48,10 @@ export default async function handler(
     // 3. Return Gemini's response
     res.status(200).json({ text: processedText });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in /api/search handler:', error);
     let errorMessage = 'Failed to process search request.';
-    if (error.message) {
+    if (error instanceof Error && error.message) {
       errorMessage = error.message;
     }
     res.status(500).json({ error: errorMessage });

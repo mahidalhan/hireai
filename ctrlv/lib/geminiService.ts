@@ -51,7 +51,7 @@ Here is the JSON data from the search engine:
  * @param exaResults The raw search results from the Exa API.
  * @returns A string containing the human-readable summary from Gemini, or an error message.
  */
-export async function getProcessedCandidateInfo(exaResults: any): Promise<string> {
+export async function getProcessedCandidateInfo(exaResults: unknown): Promise<string> {
   if (!model) {
     console.error("Gemini model is not initialized. Check GEMINI_API_KEY.");
     return "Sorry, the AI processing service is not available at the moment.";

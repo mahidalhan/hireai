@@ -46,7 +46,7 @@ const RetroTableWindow: React.FC<RetroTableWindowProps> = ({
     );
     // Remove the first and last empty cell if they exist due to leading/trailing |
     const cleanedRows = rows.map(row => {
-        let tempRow = [...row];
+        const tempRow = [...row];
         if (tempRow.length > headers.length && tempRow[0] === '') tempRow.shift();
         if (tempRow.length > headers.length && tempRow[tempRow.length -1] === '') tempRow.pop();
         return tempRow;
@@ -323,8 +323,8 @@ const Home: NextPage = () => {
     }
   }, [messages]);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async (event?: React.FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
     const queryText = inputQuery.trim();
     if (!queryText) return;
 
@@ -382,9 +382,9 @@ const Home: NextPage = () => {
         };
       }
       setMessages((prevMessages) => [...prevMessages, aiMessage]);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Search failed:', err);
-      const errorMessageText = err.message || 'An unexpected error occurred.';
+      const errorMessageText = (err instanceof Error && err.message) ? err.message : 'An unexpected error occurred.';
       setError(errorMessageText);
       const errorMessage: Message = {
         id: Date.now().toString() + '-catch-error',
@@ -512,7 +512,7 @@ const Home: NextPage = () => {
             disabled={isLoading}
             onKeyPress={(e) => {
               if (e.key === 'Enter' && !e.shiftKey && !isLoading) {
-                handleSubmit(e as any); // Trigger form submission
+                handleSubmit(); // Trigger form submission
               }
             }}
           />
