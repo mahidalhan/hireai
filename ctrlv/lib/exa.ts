@@ -1,7 +1,10 @@
 import { Exa } from 'exa-js';
 
 // Initialize the Exa client with API key from environment variables
-const exaClient = new Exa(process.env.NEXT_PUBLIC_EXA_API_KEY!);
+const exaClient = new Exa(process.env.EXA_API_KEY!);
+
+// Export the client instance for use in other parts of the application
+export { exaClient };
 
 // Function to search for candidates using Exa API
 export async function searchCandidates(query: string, options?: {
