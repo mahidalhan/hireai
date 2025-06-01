@@ -1,5 +1,6 @@
+"use client";
+
 import type { NextPage } from 'next';
-import Head from 'next/head';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useState, useRef, useEffect } from 'react';
@@ -400,42 +401,7 @@ const Home: NextPage = () => {
 
   return (
     <div className="flex flex-col h-screen bg-gray-100">
-      <Head>
-        <title>Recruit360 AI Chat</title>
-        <meta name="description" content="Chat with Recruit360 AI to find candidates" />
-        <link rel="icon" href="/favicon.ico" />
-        {/* Global styles for .prose markdown tables - keep if needed for non-retro AI messages */}
-        <style jsx global>{`
-          .prose table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1em;
-            margin-bottom: 1em;
-          }
-          .prose th,
-          .prose td {
-            border: 1px solid #e2e8f0; /* gray-300 */
-            padding: 0.5em 0.75em;
-            text-align: left;
-          }
-          .prose thead {
-            background-color: #f7fafc; /* gray-100 */
-          }
-          .prose thead th {
-            font-weight: 600;
-          }
-          .prose tbody tr:nth-child(odd) {
-            background-color: #edf2f7; /* gray-200 */
-          }
-          .prose a {
-            color: #4299e1; /* blue-500 */
-            text-decoration: underline;
-          }
-          .prose a:hover {
-            color: #2b6cb0; /* blue-700 */
-          }
-        `}</style>
-      </Head>
+      {/* Favicon link is handled by placing favicon.ico in app/ or via root layout metadata */}
 
       <header className="bg-indigo-600 text-white p-4 shadow-md">
         <h1 className="text-2xl font-bold text-center">STALK.AI</h1>
@@ -499,7 +465,7 @@ const Home: NextPage = () => {
           <div className="p-3 bg-red-100 border-t border-red-300 text-red-700 text-sm">
             <p><span className="font-semibold">Error:</span> {error}</p>
           </div>
-        )}
+      )}
 
       <footer className="bg-white p-4 border-t border-gray-200 shadow- ऊपर">
         <form onSubmit={handleSubmit} className="flex items-center space-x-3">
@@ -507,26 +473,31 @@ const Home: NextPage = () => {
             type="text"
             value={inputQuery}
             onChange={(e) => setInputQuery(e.target.value)}
-            className="flex-grow block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            placeholder="Ask about candidates... (e.g., 'data scientist in New York with Python skills')"
-            disabled={isLoading}
             onKeyPress={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey && !isLoading) {
-                handleSubmit(); // Trigger form submission
+              if (e.key === 'Enter' && !e.shiftKey) {
+                handleSubmit();
+                e.preventDefault(); // Prevent newline in input
               }
             }}
+            placeholder="Ask about candidates, skills, or companies..."
+            className="flex-grow p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            disabled={isLoading}
           />
           <button
             type="submit"
+            className={`px-6 py-3 rounded-lg text-white font-semibold transition-colors duration-150 ease-in-out
+              ${isLoading ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'}
+            `}
             disabled={isLoading}
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400"
           >
             {isLoading ? (
               <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-            ) : 'Send'}
+            ) : (
+              'Send'
+            )}
           </button>
         </form>
       </footer>
