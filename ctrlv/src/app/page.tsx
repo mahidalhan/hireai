@@ -1,10 +1,10 @@
 "use client";
 
 import type { NextPage } from 'next';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { supabase } from '../lib/supabase';
-import { useState, useRef, useEffect } from 'react';
 
 interface Message {
   id: string;
@@ -26,487 +26,342 @@ interface RetroTableWindowProps {
 const RetroTableWindow: React.FC<RetroTableWindowProps> = ({ 
   markdownContent,
   userQuery,
-  onClose = () => console.log('Close clicked'), // Default stub
-  onMinimize = () => console.log('Minimize clicked'), // Default stub
-  onMaximize = () => console.log('Maximize clicked') // Default stub
+  onClose = () => console.log('Close clicked'),
+  onMinimize = () => console.log('Minimize clicked'),
+  onMaximize = () => console.log('Maximize clicked')
 }) => {
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
-  const titleText = `STALK.AI - ${userQuery || 'Search Results'}`;
-
-  // This is a trick to parse the Markdown table into a more structured format
-  // to apply specific row/cell styling not easily done with ReactMarkdown's default output.
-  const tableData = (() => {
-    if (!markdownContent) return { headers: [], rows: [] };
-    const lines = markdownContent.trim().split('\n');
-    if (lines.length < 2) return { headers: [], rows: [] }; // Need at least header and separator
-
-    const headerLine = lines[0];
-    const headers = headerLine.split('|').map(h => h.trim()).filter(h => h);
+  const [isHovered, setIsHovered] = useState(false);
+  const titleText = `HIRE.AI - ${userQuery || 'Search Results'}`;
+  
+  // Parse the markdown content to extract table data
+  const tableRows = useMemo(() => {
+    const lines = markdownContent.split('\n');
+    const tableStart = lines.findIndex(line => line.trim().startsWith('|'));
+    if (tableStart === -1) return [];
     
-    const rows = lines.slice(2).map(line => 
-      line.split('|').map(cell => cell.trim()).filter((cell, index) => index < headers.length + 1)
-    );
-    // Remove the first and last empty cell if they exist due to leading/trailing |
-    const cleanedRows = rows.map(row => {
-        const tempRow = [...row];
-        if (tempRow.length > headers.length && tempRow[0] === '') tempRow.shift();
-        if (tempRow.length > headers.length && tempRow[tempRow.length -1] === '') tempRow.pop();
-        return tempRow;
+    // Find where the table ends
+    let tableEnd = lines.length;
+    for (let i = tableStart + 1; i < lines.length; i++) {
+      if (!lines[i].trim().startsWith('|')) {
+        tableEnd = i;
+        break;
+      }
+    }
+    
+    // Extract header and rows
+    const tableLines = lines.slice(tableStart, tableEnd);
+    if (tableLines.length < 3) return []; // Need at least header, separator, and one data row
+    
+    const headerRow = tableLines[0];
+    const headers = headerRow
+      .split('|')
+      .filter(cell => cell.trim() !== '')
+      .map(cell => cell.trim());
+    
+    // Skip the separator row (index 1)
+    const dataRows = tableLines.slice(2).map(row => {
+      const cells = row
+        .split('|')
+        .filter(cell => cell.trim() !== '')
+        .map(cell => cell.trim());
+      return cells;
     });
-
-    return { headers, rows: cleanedRows };
-  })();
-
+    
+    return { headers, dataRows };
+  }, [markdownContent]);
+  
+  const handleRowClick = (index: number) => {
+    setSelectedRowIndex(index === selectedRowIndex ? null : index);
+  };
+  
   return (
-    <div className="win95-window">
-      <div className="win95-title-bar">
-        <div className="win95-title-text">{titleText}</div>
-        <div className="win95-title-buttons">
-          <button onClick={onMinimize} aria-label="Minimize" className="win95-button win95-title-button">_</button>
-          <button onClick={onMaximize} aria-label="Maximize" className="win95-button win95-title-button">□</button>
-          <button onClick={onClose} aria-label="Close" className="win95-button win95-title-button win95-close-button">×</button>
+    <div 
+      className="stalk-window"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="stalk-window-header">
+        <div className="stalk-window-title">{titleText}</div>
+        <div className="stalk-window-controls">
+          <button 
+            className="stalk-window-button minimize" 
+            onClick={onMinimize}
+            aria-label="Minimize"
+          >
+            &#8211;
+          </button>
+          <button 
+            className="stalk-window-button maximize" 
+            onClick={onMaximize}
+            aria-label="Maximize"
+          >
+            &#9744;
+          </button>
+          <button 
+            className="stalk-window-button close" 
+            onClick={onClose}
+            aria-label="Close"
+          >
+            &#10005;
+          </button>
         </div>
       </div>
-      <div className="win95-menu-bar">
-        <span><u>F</u>ile</span>
-        <span><u>E</u>dit</span>
-        <span><u>V</u>iew</span>
-        <span><u>O</u>ptions</span>
+      
+      <div className="stalk-toolbar">
+        <div className="stalk-toolbar-actions">
+          <button className="stalk-action-button" aria-label="Copy to clipboard">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 4V16C8 16.5304 8.21071 17.0391 8.58579 17.4142C8.96086 17.7893 9.46957 18 10 18H18C18.5304 18 19.0391 17.7893 19.4142 17.4142C19.7893 17.0391 20 16.5304 20 16V7.242C20 6.97556 19.9467 6.71181 19.8433 6.46624C19.7399 6.22068 19.5885 5.99824 19.398 5.812L16.188 2.602C16.0018 2.41148 15.7793 2.26012 15.5338 2.15673C15.2882 2.05334 15.0244 2.00003 14.758 2H10C9.46957 2 8.96086 2.21071 8.58579 2.58579C8.21071 2.96086 8 3.46957 8 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M16 18V20C16 20.5304 15.7893 21.0391 15.4142 21.4142C15.0391 21.7893 14.5304 22 14 22H6C5.46957 22 4.96086 21.7893 4.58579 21.4142C4.21071 21.0391 4 20.5304 4 20V8C4 7.46957 4.21071 6.96086 4.58579 6.58579C4.96086 6.21071 5.46957 6 6 6H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span>Copy</span>
+          </button>
+          <button className="stalk-action-button" aria-label="Export as CSV">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span>Export</span>
+          </button>
+        </div>
+        <div className="stalk-toolbar-info">
+          <span className="stalk-results-count">{Array.isArray(tableRows) ? 0 : (tableRows?.dataRows?.length || 0)} results</span>
+        </div>
       </div>
-      <div className="win95-query-label-container">
-        <div className="win95-query-text">Query: {userQuery}</div>
-      </div>
-      <div className="win95-table-container">
-        {tableData.headers.length > 0 ? (
-          <table className="win95-table">
+      
+      
+      <div className="stalk-table-container">
+        {tableRows && tableRows.headers && tableRows.dataRows ? (
+          <table className="stalk-table">
             <thead>
               <tr>
-                {tableData.headers.map((header, index) => (
+                {tableRows.headers.map((header, index) => (
                   <th key={index}>{header}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {tableData.rows.map((row, rowIndex) => (
+              {tableRows.dataRows.map((row, rowIndex) => (
                 <tr 
                   key={rowIndex} 
-                  onClick={() => setSelectedRowIndex(rowIndex)}
                   className={selectedRowIndex === rowIndex ? 'selected' : ''}
+                  onClick={() => handleRowClick(rowIndex)}
                 >
                   {row.map((cell, cellIndex) => {
-                    const isLinkColumn = tableData.headers[cellIndex]?.toLowerCase().includes('url');
-                    // Basic check for http/https to identify URLs for styling
-                    const isActualLink = typeof cell === 'string' && (cell.startsWith('http://') || cell.startsWith('https://'));
-                    if (isLinkColumn && isActualLink) {
-                      return <td key={cellIndex}><a href={cell} target="_blank" rel="noopener noreferrer">{cell}</a></td>;
-                    }
-                    return <td key={cellIndex}>{cell}</td>;
+                    // Check if this is a LinkedIn URL column
+                    const isLinkedInUrl = Array.isArray(tableRows) ? 
+                      (cell.startsWith('https://') && cell.includes('linkedin.com')) : 
+                      (tableRows.headers[cellIndex]?.toLowerCase().includes('linkedin') || 
+                       tableRows.headers[cellIndex]?.toLowerCase().includes('profile') || 
+                       (cell.startsWith('https://') && cell.includes('linkedin.com')));
+                    
+                    return (
+                      <td key={cellIndex}>
+                        {isLinkedInUrl ? (
+                          <a 
+                            href={cell} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="stalk-linkedin-link"
+                          >
+                            <svg className="linkedin-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                            </svg>
+                            View Profile
+                          </a>
+                        ) : cell.includes('[') && cell.includes('](') ? (
+                          <a 
+                            href={cell.match(/\]\((.*?)\)/)?.[1] || '#'} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {cell.match(/\[(.*?)\]/)?.[1] || cell}
+                          </a>
+                        ) : (
+                          cell
+                        )}
+                      </td>
+                    );
                   })}
                 </tr>
               ))}
             </tbody>
           </table>
         ) : (
-          <div style={{ padding: '8px', textAlign: 'center' }}>No table data to display.</div>
+          <div className="stalk-empty-table">No table data found</div>
         )}
       </div>
-
-      <style jsx>{`
-        /* Global styles for this component */
-        .win95-window {
-          font-family: 'MS Sans Serif', 'Tahoma', Arial, sans-serif;
-          font-size: 12px; /* Base pixel font size */
-          background-color: #C0C0C0; /* light gray */
-          border-top: 1px solid #FFFFFF; /* white */
-          border-left: 1px solid #FFFFFF; /* white */
-          border-bottom: 1px solid #000000; /* black for outer shadow */
-          border-right: 1px solid #000000; /* black for outer shadow */
-          padding: 2px; /* Overall padding to create inner bevel */
-          image-rendering: pixelated; /* Attempt for jagged edges on images/fonts */
-          font-smooth: never;
-          -webkit-font-smoothing: none;
-          -moz-osx-font-smoothing: grayscale;
-        }
-        .win95-window::before {
-          content: '';
-          position: absolute;
-          top: 1px;
-          left: 1px;
-          right: 1px;
-          bottom: 1px;
-          border-top: 1px solid #C0C0C0; /* Inner light gray border */
-          border-left: 1px solid #C0C0C0;
-          border-bottom: 1px solid #808080; /* dark gray */
-          border-right: 1px solid #808080; /* dark gray */
-          pointer-events: none; /* Make sure it doesn't interfere with clicks */
-        }
-
-        .win95-title-bar {
-          background-color: #000080; /* blue */
-          color: #FFFFFF; /* white */
-          padding: 2px 4px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          height: 20px; /* Fixed height */
-        }
-        .win95-title-text {
-          font-weight: bold;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        .win95-title-buttons {
-          display: flex;
-        }
-        .win95-button {
-          background-color: #C0C0C0; /* light gray */
-          border-top: 1px solid #FFFFFF;
-          border-left: 1px solid #FFFFFF;
-          border-bottom: 1px solid #000000;
-          border-right: 1px solid #000000;
-          width: 16px;
-          height: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-family: 'MS Sans Serif', 'Tahoma', Arial, sans-serif; /* Ensure pixel font */
-          font-size: 10px; /* Small symbols */
-          margin-left: 2px;
-          padding: 0;
-          box-sizing: border-box;
-          line-height: 1; /* For button text */
-        }
-        .win95-button:active {
-          border-top: 1px solid #000000;
-          border-left: 1px solid #000000;
-          border-bottom: 1px solid #FFFFFF;
-          border-right: 1px solid #FFFFFF;
-        }
-        .win95-close-button {
-          font-weight: bold;
-        }
-
-        .win95-menu-bar {
-          background-color: #C0C0C0; /* light gray */
-          padding: 2px 4px;
-          display: flex;
-          height: 20px; /* Fixed height */
-          align-items: center;
-        }
-        .win95-menu-bar span {
-          padding: 2px 6px;
-          margin-right: 2px;
-          color: #000000; /* black */
-          cursor: default;
-        }
-        .win95-menu-bar span:hover {
-          background-color: #808080; /* dark gray */
-          color: #FFFFFF; /* white */
-        }
-
-        .win95-query-label-container {
-          background-color: #C0C0C0; /* light gray */
-          padding: 4px;
-        }
-        .win95-query-text {
-          background-color: #C0C0C0; /* light gray */
-          border-top: 1px solid #808080; /* dark gray for recessed */
-          border-left: 1px solid #808080;
-          border-bottom: 1px solid #FFFFFF; /* white for recessed */
-          border-right: 1px solid #FFFFFF;
-          padding: 4px;
-          color: #000000; /* black */
-          height: 24px; /* Fixed height */
-          display: flex;
-          align-items: center;
-        }
-
-        .win95-table-container {
-          margin: 4px;
-          border-top: 1px solid #808080; /* dark gray for recessed */
-          border-left: 1px solid #808080;
-          border-bottom: 1px solid #FFFFFF; /* white for recessed */
-          border-right: 1px solid #FFFFFF;
-          overflow-y: auto; /* Scrollable */
-          max-height: 320px; /* Example height, adjust as needed */
-          background-color: #FFFFFF; /* White background for table content area */
-        }
-        .win95-table {
-          width: 100%;
-          border-collapse: collapse;
-          border-spacing: 0;
-        }
-        .win95-table th, .win95-table td {
-          border: 1px solid #000000; /* black */
-          padding: 0 4px; /* Minimal padding */
-          text-align: left;
-          height: 32px;
-          line-height: 32px; /* For vertical centering */
-          vertical-align: middle; /* Ensure vertical centering */
-          white-space: nowrap; /* Prevent text wrapping by default */
-          overflow: hidden;
-          text-overflow: ellipsis; /* Add ellipsis if content overflows */
-        }
-        .win95-table th {
-          background-color: #A0A0A0; /* medium gray */
-          color: #000000; /* black */
-          font-weight: bold;
-          border-top: 1px solid #FFFFFF; /* white for raised */
-          border-left: 1px solid #FFFFFF;
-          border-bottom: 1px solid #808080; /* dark gray for raised */
-          border-right: 1px solid #808080;
-          position: sticky;
-          top: 0; /* Make headers sticky */
-          z-index: 1;
-        }
-        .win95-table td {
-          background-color: #C0C0C0; /* light gray */
-          color: #000000; /* black */
-        }
-        .win95-table tr.selected td {
-          background-color: #000080; /* blue */
-          color: #FFFFFF; /* white */
-        }
-        .win95-table tr.selected td a {
-          color: #FFFF00; /* Yellow for links in selected row, for contrast */
-        }
-        .win95-table td a {
-          color: #0000FF; /* blue */
-          text-decoration: underline;
-        }
-        .win95-table td a:hover {
-          color: #FF0000; /* red */
-        }
-        
-        /* Basic Scrollbar Styling - highly browser dependent */
-        .win95-table-container::-webkit-scrollbar {
-          width: 16px;
-          height: 16px;
-        }
-        .win95-table-container::-webkit-scrollbar-track {
-          background: #C0C0C0; /* light gray */
-        }
-        .win95-table-container::-webkit-scrollbar-thumb {
-          background: #808080; /* dark gray */
-          border-top: 1px solid #FFFFFF;
-          border-left: 1px solid #FFFFFF;
-          border-bottom: 1px solid #000000;
-          border-right: 1px solid #000000;
-        }
-        .win95-table-container::-webkit-scrollbar-button {
-          background: #C0C0C0;
-          border-top: 1px solid #FFFFFF;
-          border-left: 1px solid #FFFFFF;
-          border-bottom: 1px solid #000000;
-          border-right: 1px solid #000000;
-          display: block; /* Or none if you don't want arrows */
-          height: 16px;
-          width: 16px;
-        }
-        /* Add more specific scrollbar button icons if possible/needed via pseudo-elements */
-
-      `}</style>
     </div>
   );
 };
-
 
 const Home: NextPage = () => {
   const [inputQuery, setInputQuery] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
-
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Scroll to bottom of messages
   useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const handleSubmit = async (event?: React.FormEvent<HTMLFormElement>) => {
-    event?.preventDefault();
-    const queryText = inputQuery.trim();
-    if (!queryText) return;
-
-    // First add the user message
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputQuery.trim() || isLoading) return;
+    
     const userMessage: Message = {
-      id: Date.now().toString() + '-user',
+      id: Date.now().toString(),
       sender: 'user',
-      text: queryText,
+      text: inputQuery,
       timestamp: new Date(),
     };
-    setMessages((prevMessages) => [...prevMessages, userMessage]);
+    
+    setMessages(prev => [...prev, userMessage]);
     setInputQuery('');
     setIsLoading(true);
     setError(null);
-
+    
     try {
-      // Simple MVP version - no authentication required
-      console.log('Proceeding with search:', queryText);
-      
-      // For MVP: Direct API call with authorization
-      // This bypasses the client-side authentication requirement
-      console.log('Making direct API call to Edge Function');
-      
-      // Use direct fetch with the anon key from .env.local
-      const response = await fetch('https://uuoxnmhwsjyguqkgelbn.supabase.co/functions/v1/process-search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1b3hubWh3c2p5Z3Vxa2dlbGJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NzkzNDIsImV4cCI6MjA2NDI1NTM0Mn0.vmNxh7PPWXeYRWtGTBZ95NhE_7wdBcUXuElek5z_DRg'
-        },
-        body: JSON.stringify({ query: queryText })
+      // Call Supabase function to process the search
+      const { data, error } = await supabase.functions.invoke('process-search', {
+        body: { query: inputQuery },
       });
       
-      // Handle errors from the fetch
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`API error: ${response.status} ${JSON.stringify(errorData)}`);
-      }
+      if (error) throw new Error(error.message);
       
-      // Parse the successful response
-      const searchData = await response.json();
-
-      // Now create the AI message with the response data
+      // Check if the response contains a table
+      const isTable = data.text.includes('|') && data.text.includes('\n|');
+      
       const aiMessage: Message = {
-        id: Date.now().toString() + '-ai',
+        id: (Date.now() + 1).toString(),
         sender: 'ai',
-        text: searchData.text, // Access the text property from the response
+        text: data.text,
         timestamp: new Date(),
-        isTable: true,
-        originalUserQuery: queryText,
+        isTable: isTable,
+        originalUserQuery: isTable ? inputQuery : undefined,
       };
-
-      setMessages((prevMessages) => [...prevMessages, aiMessage]);
-    } catch (err: unknown) {
-      // Simple error logging for MVP
-      console.error('Search failed:', JSON.stringify(err, null, 2));
       
-      // Extract error information
-      let errorMessageText = 'An unexpected error occurred.';
-      if (err instanceof Error) {
-        errorMessageText = err.message || errorMessageText;
-        console.error('Error stack:', err.stack);
-      } else if (typeof err === 'object' && err !== null) {
-        errorMessageText = JSON.stringify(err);
-      }
-      
-      setError(errorMessageText);
-      const errorMessage: Message = {
-        id: Date.now().toString() + '-catch-error',
-        sender: 'ai',
-        text: `Error: ${errorMessageText}`,
-        timestamp: new Date(),
-      };
-      setMessages((prevMessages) => [...prevMessages, errorMessage]);
+      setMessages(prev => [...prev, aiMessage]);
+    } catch (err) {
+      console.error('Error processing search:', err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setIsLoading(false);
     }
   };
-
+  
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
-      {/* Favicon link is handled by placing favicon.ico in app/ or via root layout metadata */}
-
-      <header className="flex justify-between items-center p-6 bg-indigo-600 text-white">
-        <h1 className="text-2xl font-bold">STALK.AI</h1>
+    <div className="stalk-app">
+      <header className="stalk-header">
+        <h1 className="stalk-title">HIRE.AI</h1>
+        <div className="stalk-header-actions">
+          {isLoading && <span className="stalk-loading">Processing...</span>}
+        </div>
       </header>
-
-      <main
-        ref={chatContainerRef}
-        className="flex-grow p-6 space-y-4 overflow-y-auto bg-gray-50"
-      >
-        {messages.map((msg) => {
-          if (msg.sender === 'ai' && msg.isTable && msg.originalUserQuery) {
-            return (
-              <RetroTableWindow 
-                key={msg.id} 
-                markdownContent={msg.text} 
-                userQuery={msg.originalUserQuery} 
-              />
-            );
-          }
-          // Default message rendering
-          return (
-            <div
-              key={msg.id}
-              className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-xl lg:max-w-3xl px-4 py-2 rounded-lg shadow ${ 
-                  msg.sender === 'user'
-                    ? 'bg-indigo-500 text-white'
-                    : msg.text.startsWith('Error:') 
-                      ? 'bg-red-200 text-red-800 prose prose-sm lg:prose-base break-words' 
-                      : 'bg-white text-gray-800 prose prose-sm lg:prose-base break-words'
-                }`}
-              >
-                {
-                  msg.sender === 'ai' ? (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {msg.text}
-                    </ReactMarkdown>
-                  ) : (
-                    <p className="text-sm">{msg.text}</p>
-                  )
-                }
-                <p className={`text-xs mt-1 ${msg.sender === 'user' ? 'text-indigo-200' : 'text-gray-400'} text-right`}>
-                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
+      
+      <main className="flex-1 p-4 overflow-y-auto">
+        {messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="welcome-container">
+              <h1 className="welcome-title">HIRE.AI</h1>
+              <p className="welcome-subtitle">Find exceptional talent</p>
+              
+              <div className="search-examples">
+                <div className="example-card">
+                  <p>"Find senior ML engineers at Google"</p>
+                </div>
+                <div className="example-card">
+                  <p>"Show React developers in Berlin"</p>
+                </div>
+                <div className="example-card">
+                  <p>"List top cloud architects with AWS experience"</p>
+                </div>
               </div>
             </div>
-          );
-        })}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="px-4 py-2 rounded-lg shadow bg-white text-gray-800">
-              <p className="text-sm italic">AI is thinking...</p>
-            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {messages.map((message) => (
+              <div 
+                key={message.id} 
+                className={`stalk-message-container ${
+                  message.sender === 'user' ? 'justify-end' : 'justify-start'
+                }`}
+              >
+                <div 
+                  className={`stalk-message ${
+                    message.sender === 'user' ? 'stalk-message-user' : 'stalk-message-ai'
+                  }`}
+                >
+                  {message.isTable ? (
+                    <RetroTableWindow 
+                      markdownContent={message.text} 
+                      userQuery={message.originalUserQuery || ''}
+                    />
+                  ) : (
+                    <div className="prose prose-sm max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {message.text}
+                      </ReactMarkdown>
+                    </div>
+                  )}
+                  <div className="stalk-message-time">
+                    {message.timestamp.toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            {error && (
+              <div className="stalk-window stalk-error-window">
+                <div className="stalk-window-header">
+                  <div className="stalk-window-title">Error</div>
+                  <div className="stalk-window-controls">
+                    <button 
+                      className="stalk-window-button close" 
+                      onClick={() => setError(null)}
+                      aria-label="Close"
+                    >
+                      &#10005;
+                    </button>
+                  </div>
+                </div>
+                <div className="p-4 text-red-600">{error}</div>
+              </div>
+            )}
+            
+            <div ref={messagesEndRef} />
           </div>
         )}
       </main>
-
-      {error && (
-          <div className="p-3 bg-red-100 border-t border-red-300 text-red-700 text-sm">
-            <p><span className="font-semibold">Error:</span> {error}</p>
-          </div>
-      )}
-
-      <footer className="bg-white p-4 border-t border-gray-200 shadow- ऊपर">
-          <form onSubmit={handleSubmit} className="flex items-center space-x-3">
+      
+      <footer className="stalk-footer">
+        <form onSubmit={handleSubmit} className="search-form">
           <input
             type="text"
             value={inputQuery}
             onChange={(e) => setInputQuery(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                handleSubmit();
-                e.preventDefault(); // Prevent newline in input
-              }
-            }}
-            placeholder="Ask about candidates, skills, or companies..."
-            className="flex-grow p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="Describe the talent you're looking for..."
+            className="stalk-input"
             disabled={isLoading}
           />
-          <button
-            type="submit"
-            className={`px-6 py-3 rounded-lg text-white font-semibold transition-colors duration-150 ease-in-out
-              ${isLoading ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'}
-            `}
+          <button 
+            type="submit" 
+            className="stalk-button"
             disabled={isLoading}
           >
-            {isLoading ? (
-              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            ) : (
-              'Send'
-            )}
+            {isLoading ? 'Searching...' : 'Search'}
           </button>
-          </form>
+        </form>
       </footer>
     </div>
   );

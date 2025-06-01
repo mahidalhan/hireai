@@ -13,22 +13,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CtrlV App", // Or a more generic title for the root layout
-  description: "AI Powered Search and Data Extraction", // More descriptive
+  title: "HIRE.AI",
+  description: "Find exceptional technical talent across any domain",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body>{children}</body>
     </html>
   );
 }
