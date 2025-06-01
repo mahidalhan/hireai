@@ -1,28 +1,25 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 
+// Get API key from environment variables
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 if (!GEMINI_API_KEY) {
-  // This check is important. If the key isn't found, the service can't initialize.
-  // The application should handle this gracefully, perhaps in the API route.
-  console.error("GEMINI_API_KEY is not set in environment variables. Gemini client cannot be initialized.");
-  // Depending on your error handling strategy, you might throw an error here
-  // or have functions return a specific error state.
+  throw new Error("GEMINI_API_KEY environment variable is not set");
 }
 
-// Initialize the GoogleGenerativeAI client only if the API key is available.
-const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
+// Initialize the GoogleGenerativeAI client
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-// Define the model. We are using gemini-1.5-flash for its balance of speed and capability.
-const model = genAI ? genAI.getGenerativeModel({
+// Define the model
+const model = genAI.getGenerativeModel({
   model: "gemini-1.5-flash",
-  safetySettings: [ // Optional: Adjust safety settings as needed
+  safetySettings: [
     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
     { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
     { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
   ],
-}) : null;
+});
 
 const DEFAULT_PROMPT_TEMPLATE = `
 You are an expert recruitment assistant. Based on the following JSON search results from a job candidate search engine, extract key information for each potential candidate and format it **ONLY as a Markdown table**. Do not include any introductory text, preamble, or any concluding notes or summaries outside of the table itself. Your entire response should be just the Markdown table.

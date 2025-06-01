@@ -3,6 +3,7 @@
 import type { NextPage } from 'next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { supabase } from '../lib/supabase';
 import { useState, useRef, useEffect } from 'react';
 
 interface Message {
@@ -329,6 +330,7 @@ const Home: NextPage = () => {
     const queryText = inputQuery.trim();
     if (!queryText) return;
 
+    // First add the user message
     const userMessage: Message = {
       id: Date.now().toString() + '-user',
       sender: 'user',
@@ -341,51 +343,56 @@ const Home: NextPage = () => {
     setError(null);
 
     try {
-      const response = await fetch('/api/search', {
+      // Simple MVP version - no authentication required
+      console.log('Proceeding with search:', queryText);
+      
+      // For MVP: Direct API call with authorization
+      // This bypasses the client-side authentication requirement
+      console.log('Making direct API call to Edge Function');
+      
+      // Use direct fetch with the anon key from .env.local
+      const response = await fetch('https://uuoxnmhwsjyguqkgelbn.supabase.co/functions/v1/process-search', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: queryText }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1b3hubWh3c2p5Z3Vxa2dlbGJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NzkzNDIsImV4cCI6MjA2NDI1NTM0Mn0.vmNxh7PPWXeYRWtGTBZ95NhE_7wdBcUXuElek5z_DRg'
+        },
+        body: JSON.stringify({ query: queryText })
       });
-
+      
+      // Handle errors from the fetch
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`API error: ${response.status} ${JSON.stringify(errorData)}`);
       }
+      
+      // Parse the successful response
+      const searchData = await response.json();
 
-      const data = await response.json();
-      let aiMessage: Message;
+      // Now create the AI message with the response data
+      const aiMessage: Message = {
+        id: Date.now().toString() + '-ai',
+        sender: 'ai',
+        text: searchData.text, // Access the text property from the response
+        timestamp: new Date(),
+        isTable: true,
+        originalUserQuery: queryText,
+      };
 
-      if (data.text) {
-        // Heuristic check for Markdown table
-        const isTableResponse = data.text.trim().startsWith('|') && data.text.includes('|---');
-        aiMessage = {
-          id: Date.now().toString() + '-ai',
-          sender: 'ai',
-          text: data.text,
-          timestamp: new Date(),
-          isTable: isTableResponse,
-          originalUserQuery: isTableResponse ? queryText : undefined,
-        };
-      } else if (data.error) {
-        setError(data.error);
-        aiMessage = {
-          id: Date.now().toString() + '-error',
-          sender: 'ai',
-          text: `Error: ${data.error}`,
-          timestamp: new Date(),
-        };
-      } else {
-        aiMessage = {
-          id: Date.now().toString() + '-fallback',
-          sender: 'ai',
-          text: "I received a response, but it's not in the expected format.",
-          timestamp: new Date(),
-        };
-      }
       setMessages((prevMessages) => [...prevMessages, aiMessage]);
     } catch (err: unknown) {
-      console.error('Search failed:', err);
-      const errorMessageText = (err instanceof Error && err.message) ? err.message : 'An unexpected error occurred.';
+      // Simple error logging for MVP
+      console.error('Search failed:', JSON.stringify(err, null, 2));
+      
+      // Extract error information
+      let errorMessageText = 'An unexpected error occurred.';
+      if (err instanceof Error) {
+        errorMessageText = err.message || errorMessageText;
+        console.error('Error stack:', err.stack);
+      } else if (typeof err === 'object' && err !== null) {
+        errorMessageText = JSON.stringify(err);
+      }
+      
       setError(errorMessageText);
       const errorMessage: Message = {
         id: Date.now().toString() + '-catch-error',
@@ -403,11 +410,11 @@ const Home: NextPage = () => {
     <div className="flex flex-col h-screen bg-gray-100">
       {/* Favicon link is handled by placing favicon.ico in app/ or via root layout metadata */}
 
-      <header className="bg-indigo-600 text-white p-4 shadow-md">
-        <h1 className="text-2xl font-bold text-center">STALK.AI</h1>
+      <header className="flex justify-between items-center p-6 bg-indigo-600 text-white">
+        <h1 className="text-2xl font-bold">STALK.AI</h1>
       </header>
 
-      <main 
+      <main
         ref={chatContainerRef}
         className="flex-grow p-6 space-y-4 overflow-y-auto bg-gray-50"
       >
@@ -468,7 +475,7 @@ const Home: NextPage = () => {
       )}
 
       <footer className="bg-white p-4 border-t border-gray-200 shadow- ऊपर">
-        <form onSubmit={handleSubmit} className="flex items-center space-x-3">
+          <form onSubmit={handleSubmit} className="flex items-center space-x-3">
           <input
             type="text"
             value={inputQuery}
@@ -499,7 +506,7 @@ const Home: NextPage = () => {
               'Send'
             )}
           </button>
-        </form>
+          </form>
       </footer>
     </div>
   );
