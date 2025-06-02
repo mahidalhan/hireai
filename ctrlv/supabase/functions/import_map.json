@@ -1,7 +1,0 @@
-{
-  "imports": {
-    "https://deno.land/std@0.192.0/http/server.ts": "https://deno.land/std@0.192.0/http/server.ts",
-    "@exa-ai/exa-js": "https://esm.sh/@exa-ai/exa-js",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.42.0"
-  }
-}
