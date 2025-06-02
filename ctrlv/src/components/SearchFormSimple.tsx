@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { createClient } from '@/lib/supabase/client';
@@ -30,7 +30,9 @@ export function SearchFormSimple() {
       alert('Search completed! Check console for results');
     } catch (error) {
       console.error('Search error:', error);
-      alert('Search failed: ' + error.message);
+      // Type-safe error handling
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';  
+      alert('Search failed: ' + errorMessage);
     } finally {
       setIsLoading(false);
     }

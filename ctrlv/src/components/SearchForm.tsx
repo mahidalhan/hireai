@@ -1,7 +1,7 @@
 // File: components/SearchForm.tsx
 'use client';
 
-import { useState, FormEvent } from 'react';
+import React, { useState, FormEvent } from 'react';
 import { Trash2 } from 'lucide-react'; // For remove buttons
 
 // Define the structure for an enrichment item
@@ -18,7 +18,8 @@ interface CriterionItem {
 }
 
 interface SearchFormProps {
-  onSubmit: (data: {
+  // eslint-disable-next-line no-unused-vars
+  onSubmit: (_formData: {
     query: string;
     criteria: string[];
     enrichments: { description: string; format: 'text' | 'number' | 'date' }[];

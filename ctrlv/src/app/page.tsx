@@ -1,7 +1,7 @@
 "use client";
 
 import type { NextPage } from 'next';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { supabase } from '../lib/supabase';
@@ -13,6 +13,11 @@ interface Message {
   timestamp: Date;
   isTable?: boolean; // Flag for AI table responses
   originalUserQuery?: string; // The user query that prompted this AI table response
+}
+
+interface TableData {
+  headers: string[];
+  dataRows: string[][];
 }
 
 interface RetroTableWindowProps {
@@ -31,11 +36,15 @@ const RetroTableWindow: React.FC<RetroTableWindowProps> = ({
   onMaximize = () => console.log('Maximize clicked')
 }) => {
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
-  const [isHovered, setIsHovered] = useState(false);
+  
+  // Type guard function to check if tableRows is a TableData object
+  const isTableData = (data: TableData | []): data is TableData => {
+    return !Array.isArray(data) && 'headers' in data && 'dataRows' in data;
+  };
   const titleText = `HIRE.AI - ${userQuery || 'Search Results'}`;
   
   // Parse the markdown content to extract table data
-  const tableRows = useMemo(() => {
+  const tableRows = useMemo<TableData | []>(() => {
     const lines = markdownContent.split('\n');
     const tableStart = lines.findIndex(line => line.trim().startsWith('|'));
     if (tableStart === -1) return [];
@@ -76,10 +85,8 @@ const RetroTableWindow: React.FC<RetroTableWindowProps> = ({
   };
   
   return (
-    <div 
+    <div
       className="stalk-window"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       <div className="stalk-window-header">
         <div className="stalk-window-title">{titleText}</div>
@@ -127,13 +134,13 @@ const RetroTableWindow: React.FC<RetroTableWindowProps> = ({
           </button>
         </div>
         <div className="stalk-toolbar-info">
-          <span className="stalk-results-count">{Array.isArray(tableRows) ? 0 : (tableRows?.dataRows?.length || 0)} results</span>
+          <span className="stalk-results-count">{isTableData(tableRows) ? tableRows.dataRows.length : 0} results</span>
         </div>
       </div>
       
       
       <div className="stalk-table-container">
-        {tableRows && tableRows.headers && tableRows.dataRows ? (
+        {isTableData(tableRows) ? (
           <table className="stalk-table">
             <thead>
               <tr>
@@ -151,7 +158,7 @@ const RetroTableWindow: React.FC<RetroTableWindowProps> = ({
                 >
                   {row.map((cell, cellIndex) => {
                     // Check if this is a LinkedIn URL column
-                    const isLinkedInUrl = Array.isArray(tableRows) ? 
+                    const isLinkedInUrl = !isTableData(tableRows) ? 
                       (cell.startsWith('https://') && cell.includes('linkedin.com')) : 
                       (tableRows.headers[cellIndex]?.toLowerCase().includes('linkedin') || 
                        tableRows.headers[cellIndex]?.toLowerCase().includes('profile') || 
@@ -274,13 +281,13 @@ const Home: NextPage = () => {
               
               <div className="search-examples">
                 <div className="example-card">
-                  <p>"Find senior ML engineers at Google"</p>
+                  <p>&quot;Find senior ML engineers at Google&quot;</p>
                 </div>
                 <div className="example-card">
-                  <p>"Show React developers in Berlin"</p>
+                  <p>&quot;Show React developers in Berlin&quot;</p>
                 </div>
                 <div className="example-card">
-                  <p>"List top cloud architects with AWS experience"</p>
+                  <p>&quot;List top cloud architects with AWS experience&quot;</p>
                 </div>
               </div>
             </div>
